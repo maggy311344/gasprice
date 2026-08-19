@@ -65,12 +65,12 @@ def get_hobart_real_fuel_price():
     }
 
     # 1. 網址改為 v2 的 bynamedlocation，並指定 states=TAS
-    url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bynamedlocation?states=TAS"
+    url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bypostcode?states=TAS"
 
     for pc in postcodes:
         payload = {
             "fueltype": "U91",
-            "namedlocation": pc,
+            "postcode": pc,
             "sortby": "Price",
             "sortascending": "true",
         }
