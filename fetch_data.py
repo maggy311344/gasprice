@@ -20,7 +20,7 @@ def get_hobart_real_fuel_price():
         print("❌ [Error] 未設定 FUELCHECK_API_KEY 或 FUELCHECK_API_SECRET 秘鑰！")
         return None, "⚠️ 秘鑰未設定", "請在 GitHub Secrets 設定 API 金鑰"
 
-# Step A: 取得 OAuth Token (使用正確的 api.onegov.nsw.gov.au 域名)
+    # Step A: 取得 OAuth Token (使用正確的 api.onegov.nsw.gov.au 域名)
     token = None
     try:
         auth_str = f"{api_key}:{api_secret}"
@@ -48,8 +48,8 @@ def get_hobart_real_fuel_price():
     except Exception as e:
         print(f"❌ [OAuth Exception] 連線異常: {str(e)}")
         return None, "⚠️ OAuth 連線異常", str(e)
-    
-# Step B: 使用 v2 API (POST 方式) 查詢 7009 與 7000 地區
+
+    # Step B: 使用 v2 API (POST 方式) 查詢 7009 與 7000 地區
     postcodes = ["7009", "7000"]
     combined_results = []
 
@@ -64,10 +64,10 @@ def get_hobart_real_fuel_price():
         "Content-Type": "application/json; charset=utf-8",
     }
 
-# 1. 網址改為 v2 的 bynamedlocation，並指定 states=TAS
+    # 1. 網址改為 v2 的 bynamedlocation，並指定 states=TAS
     url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bynamedlocation?states=TAS"
 
-for pc in postcodes:
+    for pc in postcodes:
         payload = {
             "fueltype": "U91",
             "namedlocation": pc,
