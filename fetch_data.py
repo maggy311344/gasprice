@@ -276,11 +276,10 @@ def analyze_and_generate():
                 f" {oil_aud_change}%)"
             )
             desc = (
-                f"<strong>{station_name}</strong>（{station_address}）目前"
-                f" U91 現價為 <strong>{base_price} c/L</strong>。"
+                f"**{station_name}**（{station_address}）目前 U91 現價為"
+                f" **{base_price} c/L**。"
                 f"因國際原油與匯率綜合成本上漲 {oil_aud_change}%"
-                f" {fx_warning_str}，預計 3-5"
-                " 天內將有顯著漲幅，建議盡快加滿。"
+                f" {fx_warning_str}，預計 3-5 天內將有顯著漲幅，建議盡快加滿。"
             )
             score = 98
             retail_curve = [
@@ -301,8 +300,8 @@ def analyze_and_generate():
                 f" {abs(oil_aud_change)}%)"
             )
             desc = (
-                f"<strong>{station_name}</strong>（{station_address}）目前"
-                f" U91 現價為 <strong>{base_price} c/L</strong>。"
+                f"**{station_name}**（{station_address}）目前 U91 現價為"
+                f" **{base_price} c/L**。"
                 f"以澳幣計價之原油進口成本回落"
                 f" {abs(oil_aud_change)}%，短期內暴漲風險低。"
             )
@@ -322,8 +321,8 @@ def analyze_and_generate():
             banner_color = "var(--accent-green)"
             status_text = f"🟢 走勢平穩 ({station_name} 現價 {base_price} c/L)"
             desc = (
-                f"<strong>{station_name}</strong>（{station_address}）目前"
-                f" U91 現價為 <strong>{base_price} c/L</strong>。"
+                f"**{station_name}**（{station_address}）目前 U91 現價為"
+                f" **{base_price} c/L**。"
                 f"澳幣計價原油走勢溫和 ({oil_aud_change:+.1f}%)"
                 f" {fx_warning_str}，零售價格波動預計保持平穩。"
             )
