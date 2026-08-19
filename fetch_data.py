@@ -20,36 +20,99 @@ def get_hobart_real_fuel_price():
         print("❌ [Error] 未設定 FUELCHECK_API_KEY 或 FUELCHECK_API_SECRET 秘鑰！")
         return None, "⚠️ 秘鑰未設定", "請在 GitHub Secrets 設定 API 金鑰"
 
-    # 查詢 Lutana (7009) 與 Hobart (7000) 地區 U91 油價 (直接使用 API Key 驗證)
-    postcodes = ["7009", "7000"]
-    all_stations = []
+# Step A: 取得 OAuth Token (使用正確的 api.onegov.nsw.gov.au 域名)
+    token = None
+    try:
+        auth_str = f"{api_key}:{api_secret}"
+        b64_auth = base64.b64encode(auth_str.encode()).decode()
+        headers_token = {
+            "Authorization": f"Basic {b64_auth}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        token_url = "https://api.onegov.nsw.gov.au/oauth/client_credential/accesstoken?grant_type=client_credentials"
+        token_res = requests.get(token_url, headers=headers_token, timeout=10)
+
+        if token_res.status_code != 200:
+            print(
+                f"❌ [OAuth Failed] HTTP {token_res.status_code} | 回傳內容:"
+                f" {token_res.text}"
+            )
+            return (
+                None,
+                f"⚠️ Token 驗證失敗 (HTTP {token_res.status_code})",
+                token_res.text,
+            )
+
+        token = token_res.json().get("access_token")
+        print("✅ OAuth Token 取得成功！")
+    except Exception as e:
+        print(f"❌ [OAuth Exception] 連線異常: {str(e)}")
+        return None, "⚠️ OAuth 連線異常", str(e)
     
+# Step B: 使用 v2 API (POST 方式) 查詢 7009 與 7000 地區
+    postcodes = ["7009", "7000"]
+    combined_results = []
+
+    # 採用官方要求的 UTC 時間格式
+    utc_timestamp = datetime.utcnow().strftime("%d/%m/%Y %I:%M:%S %p")
+
     headers_api = {
+        "Authorization": f"Bearer {token}",
         "apikey": api_key,
         "transactionid": "1",
-        "requesttimestamp": datetime.now().strftime("%d/%m/%Y %I:%M:%S %p"),
-        "Content-Type": "application/json; charset=utf-8"
+        "requesttimestamp": utc_timestamp,
+        "Content-Type": "application/json; charset=utf-8",
     }
-    
+
+    url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bypostcode"
+
     for pc in postcodes:
+        payload = {
+            "fueltype": "U91",
+            "brand": [],
+            "namedlocation": pc,
+            "sortby": "Price",
+            "sortascending": "true",
+        }
         try:
-            url = f"https://api.nsw.gov.au/FuelCheck/v1/fuel/prices/bypostcode?postcode={pc}&fueltype=U91"
-            res = requests.get(url, headers=headers_api, timeout=10)
+            res = requests.post(
+                url, headers=headers_api, json=payload, timeout=10
+            )
 
             if res.status_code == 200:
                 data = res.json()
+                # 建立站點對照表
+                stations = {
+                    str(s.get("code")): s for s in data.get("stations", [])
+                }
                 prices = data.get("prices", [])
-                print(f"ℹ️ Postcode {pc} 抓取成功，取得 {len(prices)} 筆站點資料")
-                all_stations.extend(prices)
+
+                # 組合價格與站點資料
+                for p in prices:
+                    st_code = str(p.get("stationcode"))
+                    st_info = stations.get(st_code, {})
+                    combined_results.append(
+                        {
+                            "price": p.get("price"),
+                            "stationname": st_info.get(
+                                "name", "Hobart 加油站"
+                            ),
+                            "address": st_info.get("address", f"Postcode {pc}"),
+                        }
+                    )
+                print(
+                    f"ℹ️ Postcode {pc} (v2) 成功取得 {len(prices)} 筆 U91 油價"
+                )
             else:
                 print(
-                    f"⚠️ [API Warning] Postcode {pc} 查詢失敗 (HTTP {res.status_code}): {res.text}"
+                    f"⚠️ [API Warning] Postcode {pc} HTTP {res.status_code}:"
+                    f" {res.text}"
                 )
         except Exception as e:
-            print(f"⚠️ [API Exception] Postcode {pc} 查詢連線異常: {str(e)}")
+            print(f"⚠️ [API Exception] Postcode {pc} 連線異常: {str(e)}")
 
-    if not all_stations:
-        print("❌ [Data Error] 未找到任何 7009 / 7000 地區的 U91 油價資料！")
+    if not combined_results:
+        print("❌ [Data Error] v2 API 未回傳 7009/7000 地區的有效數據！")
         return (
             None,
             "⚠️ 無油價資料",
@@ -59,21 +122,24 @@ def get_hobart_real_fuel_price():
     # Step C: 優先匹配 Lutana / Brooker Hwy 站點，否則取區域最低價
     lutana_stations = [
         s
-        for s in all_stations
+        for s in combined_results
         if "brooker" in s.get("address", "").lower()
         or "lutana" in s.get("address", "").lower()
         or "lutana" in s.get("stationname", "").lower()
     ]
 
-    target_list = lutana_stations if lutana_stations else all_stations
-    cheapest = min(target_list, key=lambda x: x.get("price", 999))
+    target_list = lutana_stations if lutana_stations else combined_results
+    cheapest = min(
+        target_list, key=lambda x: x.get("price", 999) if x.get("price") else 999
+    )
 
     price = cheapest.get("price")
-    station_name = cheapest.get("stationname", "Hobart / Lutana 加油站")
-    address = cheapest.get("address", "Brooker Hwy, Lutana")
+    station_name = cheapest.get("stationname", "Hobart 加油站")
+    address = cheapest.get("address", "Lutana / Hobart")
 
     print(
-        f"🎯 [Success] 成功鎖定目標站點: {station_name} ({address}) - 價格: {price} c/L"
+        f"🎯 [Success] 成功鎖定實時站點: {station_name} ({address}) - 價格:"
+        f" {price} c/L"
     )
     return price, station_name, address
 
