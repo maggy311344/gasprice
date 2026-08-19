@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-08-19 03:33:07 UTC",
+  "last_updated": "2026-08-19 03:35:38 UTC",
   "evaluation": {
     "oil_status": "當前為地區價格最低點，但「國際原油大漲/本幣貶值」的成本壓力將在 3-5 天內全面傳導至零售端！加油站隨時會突發暴漲 35c+，建議立刻加滿。",
     "score": 98,
@@ -9,7 +9,7 @@
   "metrics": {
     "oil_price": 91.7,
     "oil_change": 4.54,
-    "fx_change": 0.34,
+    "fx_change": 0.32,
     "cycle_text": "🟢 週期最低點 (Trough)"
   },
   "chart_data": {
