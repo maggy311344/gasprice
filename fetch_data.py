@@ -214,7 +214,6 @@ def send_email_alert(subject, body_html):
     except Exception as e:
         print(f"❌ 寄信失敗：{e}")
 
-
 def analyze_and_generate():
     # 時區設定：Hobart 當地時間
     hobart_tz = ZoneInfo("Australia/Hobart")
@@ -233,15 +232,25 @@ def analyze_and_generate():
     fx_7d_ago = fx.iloc[-7] if len(fx) >= 7 else fx.iloc[0]
     fx_change = round(((fx_now - fx_7d_ago) / fx_7d_ago) * 100, 2)
 
+    # 💡 核心改進：計算「澳幣計價原油成本 (AUD Brent)」與綜合變動率
+    oil_aud_now = round(oil_now / fx_now, 2)
+    oil_aud_7d_ago = oil_7d_ago / fx_7d_ago
+    oil_aud_change = round(
+        ((oil_aud_now - oil_aud_7d_ago) / oil_aud_7d_ago) * 100, 2
+    )
+
     # B. 抓取實時油價
     hobart_price, station_name, station_address = get_hobart_real_fuel_price()
 
-    # 若抓取失敗的處理邏輯 (不隱瞞錯誤)
     if hobart_price is None:
-        base_price = 200.0  # 圖表顯示用的基準占位值
+        base_price = 200.0
         price_display = "⚠️ API 擷取失敗"
         cycle_text = f"📍 {station_name}"
-        desc = f"<strong>資料擷取提醒：</strong>無法取得 Hobart/Lutana 實時油價數據。原因：<code>{station_address}</code>。請至 GitHub Actions 檢視詳細 Log。"
+        desc = (
+            "<strong>資料擷取提醒：</strong>無法取得 Hobart/Lutana"
+            f" 實時油價數據。原因：<code>{station_address}</code>。請至 GitHub"
+            " Actions 檢視詳細 Log。"
+        )
         banner_color = "var(--accent-red)"
         status_text = "⚠️ 油價數據擷取異常"
         score = 0
@@ -252,10 +261,27 @@ def analyze_and_generate():
         price_display = f"{base_price} c/L"
         cycle_text = f"📍 {station_name} ({base_price}c)"
 
-        if oil_change > 3.0 or fx_change < -2.0:
+        # 彙整澳幣走弱提示
+        fx_warning_str = (
+            f"（澳幣貶值 {abs(fx_change)}% 加劇進口成本）"
+            if fx_change < -1.0
+            else ""
+        )
+
+        # 💡 判斷邏輯改以「澳幣計價原油成本 (oil_aud_change)」為主力依據
+        if oil_aud_change > 2.5 or fx_change < -1.8:
             banner_color = "var(--accent-red)"
-            status_text = f"🚨 暴漲預警！({station_name} {base_price}c / 原油漲 {oil_change}%)"
-            desc = f"<strong>{station_name}</strong>（{station_address}）目前 U91 現價為 <strong>{base_price} c/L</strong>。因國際成本調漲，預計 3-5 天內將有顯著漲幅，建議盡快加滿。"
+            status_text = (
+                f"🚨 暴漲預警！({station_name} {base_price}c / 澳幣原油成本漲"
+                f" {oil_aud_change}%)"
+            )
+            desc = (
+                f"<strong>{station_name}</strong>（{station_address}）目前"
+                f" U91 現價為 <strong>{base_price} c/L</strong>。"
+                f"因國際原油與匯率綜合成本上漲 {oil_aud_change}%"
+                f" {fx_warning_str}，預計 3-5"
+                " 天內將有顯著漲幅，建議盡快加滿。"
+            )
             score = 98
             retail_curve = [
                 base_price,
@@ -268,10 +294,18 @@ def analyze_and_generate():
                 base_price + 15,
             ]
             scores_curve = [98, 90, 80, 20, 25, 30, 40, 50]
-        elif oil_change < -3.0:
+        elif oil_aud_change < -2.5:
             banner_color = "var(--accent-blue)"
-            status_text = f"📉 原油下跌 ({station_name} {base_price}c / 原油跌 {abs(oil_change)}%)"
-            desc = f"<strong>{station_name}</strong>（{station_address}）目前 U91 現價為 <strong>{base_price} c/L</strong>。國際原油成本回落，短期內暴漲風險低。"
+            status_text = (
+                f"📉 成本回落 ({station_name} {base_price}c / 澳幣原油成本跌"
+                f" {abs(oil_aud_change)}%)"
+            )
+            desc = (
+                f"<strong>{station_name}</strong>（{station_address}）目前"
+                f" U91 現價為 <strong>{base_price} c/L</strong>。"
+                f"以澳幣計價之原油進口成本回落"
+                f" {abs(oil_aud_change)}%，短期內暴漲風險低。"
+            )
             score = 75
             retail_curve = [
                 base_price,
@@ -287,7 +321,12 @@ def analyze_and_generate():
         else:
             banner_color = "var(--accent-green)"
             status_text = f"🟢 走勢平穩 ({station_name} 現價 {base_price} c/L)"
-            desc = f"<strong>{station_name}</strong>（{station_address}）目前 U91 現價為 <strong>{base_price} c/L</strong>。國際原油走勢平穩 ({oil_change:+.1f}%)，價格波動溫和。"
+            desc = (
+                f"<strong>{station_name}</strong>（{station_address}）目前"
+                f" U91 現價為 <strong>{base_price} c/L</strong>。"
+                f"澳幣計價原油走勢溫和 ({oil_aud_change:+.1f}%)"
+                f" {fx_warning_str}，零售價格波動預計保持平穩。"
+            )
             score = 88
             retail_curve = [
                 base_price,
@@ -301,8 +340,9 @@ def analyze_and_generate():
             ]
             scores_curve = [88, 85, 80, 75, 70, 65, 60, 55]
 
+    # 💡 成本曲線連帶改為「澳幣計價原油成本趨勢」
     oil_cost_curve = [
-        round(oil_now + (i * (oil_change / 7.0)), 1) for i in range(8)
+        round(oil_aud_now + (i * (oil_aud_change / 7.0)), 1) for i in range(8)
     ]
 
     # C. 打包寫入 data.json
@@ -339,7 +379,6 @@ def analyze_and_generate():
 
     with open("data.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
 
 if __name__ == "__main__":
     analyze_and_generate()
