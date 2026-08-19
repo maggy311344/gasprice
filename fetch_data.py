@@ -49,11 +49,11 @@ def get_hobart_real_fuel_price():
         print(f"❌ [OAuth Exception] 連線異常: {str(e)}")
         return None, "⚠️ OAuth 連線異常", str(e)
 
-    # Step B: 使用 v2 API (POST 方式) 查詢 7009 與 7000 地區
+# Step B: 使用 v2 API 查詢 7009 與 7000 地區 (正確路徑為 /fuelpricecheck/v2)
     postcodes = ["7009", "7000"]
     combined_results = []
 
-    # 採用官方要求的 UTC 時間格式
+    # 官方要求的 UTC 時間格式
     utc_timestamp = datetime.utcnow().strftime("%d/%m/%Y %I:%M:%S %p")
 
     headers_api = {
@@ -64,13 +64,14 @@ def get_hobart_real_fuel_price():
         "Content-Type": "application/json; charset=utf-8",
     }
 
-    # 1. 網址改為 v2 的 bynamedlocation，並指定 states=TAS
-    url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bypostcode?states=TAS"
+    # 修正網址前綴為 /fuelpricecheck/v2 并加上 states=TAS
+    url = "https://api.onegov.nsw.gov.au/fuelpricecheck/v2/fuel/prices/bynamedlocation?states=TAS"
 
     for pc in postcodes:
         payload = {
             "fueltype": "U91",
-            "postcode": pc,
+            "brand": [],
+            "namedlocation": pc,
             "sortby": "Price",
             "sortascending": "true",
         }
@@ -79,7 +80,6 @@ def get_hobart_real_fuel_price():
                 url, headers=headers_api, json=payload, timeout=10
             )
 
-            # ✨ 印出 API 原始回傳內容供除錯
             print(f"🔍 Postcode {pc} API Raw Response: {res.text}")
 
             if res.status_code == 200:
