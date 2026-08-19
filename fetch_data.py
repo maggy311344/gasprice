@@ -20,49 +20,17 @@ def get_hobart_real_fuel_price():
         print("❌ [Error] 未設定 FUELCHECK_API_KEY 或 FUELCHECK_API_SECRET 秘鑰！")
         return None, "⚠️ 秘鑰未設定", "請在 GitHub Secrets 設定 API 金鑰"
 
-    # Step A: 取得 OAuth Token
-    token = None
-    try:
-        auth_str = f"{api_key}:{api_secret}"
-        b64_auth = base64.b64encode(auth_str.encode()).decode()
-        headers_token = {
-            "Authorization": f"Basic {b64_auth}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        token_res = requests.get(
-            "https://api.nsw.gov.au/oauth/client_credential/accesstoken?grant_type=client_credentials",
-            headers=headers_token,
-            timeout=10,
-        )
-
-        if token_res.status_code != 200:
-            print(
-                f"❌ [OAuth Failed] HTTP {token_res.status_code} | 回傳內容: {token_res.text}"
-            )
-            return (
-                None,
-                f"⚠️ Token 驗證失敗 (HTTP {token_res.status_code})",
-                token_res.text,
-            )
-
-        token = token_res.json().get("access_token")
-        print("✅ OAuth Token 取得成功！")
-    except Exception as e:
-        print(f"❌ [OAuth Exception] 連線異常: {str(e)}")
-        return None, "⚠️ OAuth 連線異常", str(e)
-
-    # Step B: 查詢 Lutana (7009) 與 Hobart (7000) 地區 U91 油價
+    # 查詢 Lutana (7009) 與 Hobart (7000) 地區 U91 油價 (直接使用 API Key 驗證)
     postcodes = ["7009", "7000"]
     all_stations = []
-
+    
     headers_api = {
-        "Authorization": f"Bearer {token}",
         "apikey": api_key,
         "transactionid": "1",
         "requesttimestamp": datetime.now().strftime("%d/%m/%Y %I:%M:%S %p"),
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8"
     }
-
+    
     for pc in postcodes:
         try:
             url = f"https://api.nsw.gov.au/FuelCheck/v1/fuel/prices/bypostcode?postcode={pc}&fueltype=U91"
