@@ -2,7 +2,7 @@ name: Daily Fuel Data Update
 
 on:
   schedule:
-    - cron: '0 21 * * *' # 每天 UTC 21:00 (台灣/澳洲時間清晨自動執行)
+    - cron: '0 21 * * *' # 每天 UTC 21:00 自動執行
   workflow_dispatch:     # 允許手動點擊按鈕觸發執行
 
 jobs:
@@ -20,13 +20,17 @@ jobs:
       - name: 安裝數據抓取套件
         run: pip install yfinance pandas
 
-      - name: 執行自動抓取腳本
+      - name: 執行自動抓取腳本並傳送通知
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         run: python fetch_data.py
 
       - name: 將最新生成數據自動提交更新
         run: |
           git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.email 'github-actions[bot]'
           git add data.json
           git commit -m "Auto-update market fuel data" || exit 0
           git push
