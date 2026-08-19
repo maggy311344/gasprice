@@ -64,12 +64,11 @@ def get_hobart_real_fuel_price():
         "Content-Type": "application/json; charset=utf-8",
     }
 
-    url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bypostcode"
+    url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bypostcode?states=TAS"
 
     for pc in postcodes:
         payload = {
             "fueltype": "U91",
-            "brand": [],
             "namedlocation": pc,
             "sortby": "Price",
             "sortascending": "true",
