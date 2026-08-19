@@ -1,16 +1,16 @@
 {
-  "last_updated": "2026-08-19 03:35:38 UTC",
+  "last_updated": "2026-08-19 04:01:26 UTC",
   "evaluation": {
-    "oil_status": "當前為地區價格最低點，但「國際原油大漲/本幣貶值」的成本壓力將在 3-5 天內全面傳導至零售端！加油站隨時會突發暴漲 35c+，建議立刻加滿。",
+    "oil_status": "Hobart 當前最低 U91 現價為 <strong>172.9 c/L</strong>。因國際原油/匯率成本壓力增加，預計 3-5 天內 Hobart 零售端將出現顯著調漲，建議抽空加滿。",
     "score": 98,
-    "recommendation": "🚨 暴漲預警發出！(原油 7 天大漲 4.54%)",
+    "recommendation": "🚨 暴漲預警！(Hobart 現價 172.9c / 原油 7 天漲 3.76%)",
     "banner_color": "var(--accent-red)"
   },
   "metrics": {
-    "oil_price": 91.7,
-    "oil_change": 4.54,
-    "fx_change": 0.32,
-    "cycle_text": "🟢 週期最低點 (Trough)"
+    "oil_price": 91.02,
+    "oil_change": 3.76,
+    "fx_change": 0.29,
+    "cycle_text": "📍 Hobart (備用) 最低價 172.9c"
   },
   "chart_data": {
     "labels": [
@@ -24,24 +24,24 @@
       "Day 14"
     ],
     "retail_prices": [
-      168,
-      168,
-      168,
-      210,
-      208,
-      205,
-      202,
-      199
+      172.9,
+      172.9,
+      174.9,
+      207.9,
+      205.9,
+      202.9,
+      200.9,
+      197.9
     ],
     "oil_costs": [
-      91.7,
-      92.3,
-      93.0,
-      93.6,
-      94.3,
-      94.9,
-      95.6,
-      96.2
+      91.0,
+      91.6,
+      92.1,
+      92.6,
+      93.2,
+      93.7,
+      94.2,
+      94.8
     ],
     "scores": [
       98,
