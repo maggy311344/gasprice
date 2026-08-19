@@ -1,6 +1,38 @@
 from datetime import datetime
 import json
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import yfinance as yf
+
+
+# 寄送 Email 的函式
+def send_email_alert(subject, body_html):
+    sender_email = os.environ.get("SENDER_EMAIL")
+    sender_password = os.environ.get("SENDER_PASSWORD")
+    receiver_email = os.environ.get("RECEIVER_EMAIL")
+
+    # 如果沒有設定秘鑰則跳過（避免出錯）
+    if not sender_email or not sender_password or not receiver_email:
+        print("未設定 Email 密鑰，跳過寄信通知。")
+        return
+
+    msg = MIMEMultipart()
+    msg["From"] = f"油價預警機器人 <{sender_email}>"
+    msg["To"] = receiver_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body_html, "html"))
+
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        print("✅ 預警 Email 已成功寄出！")
+    except Exception as e:
+        print(f"❌ 寄信失敗：{e}")
 
 
 def analyze_and_generate():
@@ -16,10 +48,10 @@ def analyze_and_generate():
     fx_7d_ago = fx.iloc[-7] if len(fx) >= 7 else fx.iloc[0]
     fx_change = round(((fx_now - fx_7d_ago) / fx_7d_ago) * 100, 2)
 
-    # 2. 自動綜合評價演算法
-    # 當前假設本地油價處於週期低點 (TROUGH)
     cycle_text = "🟢 週期最低點 (Trough)"
+    should_send_email = False
 
+    # 2. 判斷邏輯與觸發條件
     if oil_change > 3.0 or fx_change < -2.0:
         banner_color = "var(--accent-red)"
         status_text = f"🚨 暴漲預警發出！(原油 7 天大漲 {oil_change}%)"
@@ -27,6 +59,10 @@ def analyze_and_generate():
         score = 98
         retail_curve = [168, 168, 168, 210, 208, 205, 202, 199]
         scores_curve = [98, 90, 80, 20, 25, 30, 40, 50]
+
+        # 標記需要發送警告信
+        should_send_email = True
+
     elif oil_change < -3.0:
         banner_color = "var(--accent-blue)"
         status_text = f"📉 國際原油顯著下跌 (-{abs(oil_change)}%)"
@@ -42,12 +78,29 @@ def analyze_and_generate():
         retail_curve = [168, 168, 167, 167, 205, 202, 198, 195]
         scores_curve = [88, 85, 80, 75, 20, 30, 40, 50]
 
-    # 計算原油傳導成本曲線
+    # 原油成本曲線
     oil_cost_curve = [
         round(oil_now + (i * (oil_change / 7.0)), 1) for i in range(8)
     ]
 
-    # 3. 打包資料
+    # 3. 觸發寄信通知
+    if should_send_email:
+        email_subject = f"⛽【油價暴漲預警】國際原油 7 天大漲 {oil_change}%！建議盡快加滿"
+        email_body = f"""
+        <h2>🚨 油價即將暴漲預警發出</h2>
+        <p>系統檢測到市場數據出現顯著波動：</p>
+        <ul>
+            <li><strong>布蘭特原油現價：</strong> ${oil_now} USD</li>
+            <li><strong>近 7 天原油漲幅：</strong> <span style="color:red; font-weight:bold;">+{oil_change}%</span></li>
+            <li><strong>匯率 7 天變動：</strong> {fx_change}%</li>
+        </ul>
+        <hr>
+        <p><strong>💡 建議行動：</strong> 當前本地油價處於週期低點，請於 1-2 天內將車輛油箱加滿，避免隨後的價格爆發性大漲。</p>
+        <p><a href="https://maggy311344.github.io/gasprice/">👉 點此查看你的專屬儀表板趨勢圖</a></p>
+        """
+        send_email_alert(email_subject, email_body)
+
+    # 4. 打包資料寫入 data.json
     data = {
         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"),
         "evaluation": {
