@@ -25,6 +25,8 @@ jobs:
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+          FUELCHECK_API_KEY: ${{ secrets.FUELCHECK_API_KEY }}
+          FUELCHECK_API_SECRET: ${{ secrets.FUELCHECK_API_SECRET }}
         run: python fetch_data.py
 
       - name: 將最新生成數據自動提交更新
