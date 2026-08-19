@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-08-19 14:47:38 (Hobart Time)",
+  "last_updated": "2026-08-20 07:27:45 (Hobart Time)",
   "evaluation": {
     "oil_status": "<strong>資料擷取提醒：</strong>無法取得 Hobart/Lutana 實時油價數據。原因：<code>API 未回傳 7009/7000 地區的有效加油站數據</code>。請至 GitHub Actions 檢視詳細 Log。",
     "score": 0,
@@ -7,9 +7,9 @@
     "banner_color": "var(--accent-red)"
   },
   "metrics": {
-    "oil_price": 91.61,
-    "oil_change": 3.04,
-    "fx_change": 0.24,
+    "oil_price": 91.57,
+    "oil_change": 2.99,
+    "fx_change": 0.88,
     "cycle_text": "📍 ⚠️ 無油價資料"
   },
   "chart_data": {
@@ -36,11 +36,11 @@
     "oil_costs": [
       91.6,
       92.0,
-      92.5,
+      92.4,
       92.9,
       93.3,
-      93.8,
-      94.2,
+      93.7,
+      94.1,
       94.6
     ],
     "scores": [
