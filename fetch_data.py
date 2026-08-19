@@ -67,7 +67,7 @@ def get_hobart_real_fuel_price():
 # 1. 網址改為 v2 的 bynamedlocation，並指定 states=TAS
     url = "https://api.onegov.nsw.gov.au/FuelCheck/v2/fuel/prices/bynamedlocation?states=TAS"
 
-    for pc in postcodes:
+for pc in postcodes:
         payload = {
             "fueltype": "U91",
             "namedlocation": pc,
@@ -79,25 +79,16 @@ def get_hobart_real_fuel_price():
                 url, headers=headers_api, json=payload, timeout=10
             )
 
-            # ✨ [新增 Log] 印出 API 原始回傳的 JSON 內容，方便第一時間除錯
+            # ✨ 印出 API 原始回傳內容供除錯
             print(f"🔍 Postcode {pc} API Raw Response: {res.text}")
 
             if res.status_code == 200:
                 data = res.json()
-        try:
-            res = requests.post(
-                url, headers=headers_api, json=payload, timeout=10
-            )
-
-            if res.status_code == 200:
-                data = res.json()
-                # 建立站點對照表
                 stations = {
                     str(s.get("code")): s for s in data.get("stations", [])
                 }
                 prices = data.get("prices", [])
 
-                # 組合價格與站點資料
                 for p in prices:
                     st_code = str(p.get("stationcode"))
                     st_info = stations.get(st_code, {})
