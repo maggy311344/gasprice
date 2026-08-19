@@ -9,18 +9,17 @@ from zoneinfo import ZoneInfo
 import requests
 import yfinance as yf
 
-
-# 1. 抓取 Lutana / Hobart (Postcode 7009 & 7000) 實時油價（帶完整排錯日誌）
+# 1. 抓取 Lutana / Hobart (Postcode 7009 & 7000) 實時油價
 def get_hobart_real_fuel_price():
     api_key = os.environ.get("FUELCHECK_API_KEY")
     api_secret = os.environ.get("FUELCHECK_API_SECRET")
 
-    # 檢查 1：是否缺乏 API 金鑰設定
+    # 檢查是否缺乏 API 金鑰設定
     if not api_key or not api_secret:
         print("❌ [Error] 未設定 FUELCHECK_API_KEY 或 FUELCHECK_API_SECRET 秘鑰！")
         return None, "⚠️ 秘鑰未設定", "請在 GitHub Secrets 設定 API 金鑰"
 
-    # Step A: 取得 OAuth Token (使用正確的 api.onegov.nsw.gov.au 域名)
+    # Step A: 取得 OAuth Token
     token = None
     try:
         auth_str = f"{api_key}:{api_secret}"
@@ -49,11 +48,9 @@ def get_hobart_real_fuel_price():
         print(f"❌ [OAuth Exception] 連線異常: {str(e)}")
         return None, "⚠️ OAuth 連線異常", str(e)
 
-# Step B: 使用 v2 API 查詢 7009 與 7000 地區 (正確路徑為 /fuelpricecheck/v2)
+    # Step B: 準備 Request Headers
     postcodes = ["7009", "7000"]
     combined_results = []
-
-    # 官方要求的 UTC 時間格式
     utc_timestamp = datetime.utcnow().strftime("%d/%m/%Y %I:%M:%S %p")
 
     headers_api = {
@@ -64,8 +61,8 @@ def get_hobart_real_fuel_price():
         "Content-Type": "application/json; charset=utf-8",
     }
 
-    # 修正網址前綴為 /fuelpricecheck/v2 并加上 states=TAS
-    url = "https://api.onegov.nsw.gov.au/fuelpricecheck/v2/fuel/prices/bynamedlocation?states=TAS"
+    # 策略 1：使用截圖對應的正確 Endpoint POST /FuelPriceCheck/v2/fuel/prices/location?states=TAS
+    url_location = "https://api.onegov.nsw.gov.au/FuelPriceCheck/v2/fuel/prices/location?states=TAS"
 
     for pc in postcodes:
         payload = {
@@ -77,10 +74,9 @@ def get_hobart_real_fuel_price():
         }
         try:
             res = requests.post(
-                url, headers=headers_api, json=payload, timeout=10
+                url_location, headers=headers_api, json=payload, timeout=10
             )
-
-            print(f"🔍 Postcode {pc} API Raw Response: {res.text}")
+            print(f"🔍 Postcode {pc} location API Status: {res.status_code}")
 
             if res.status_code == 200:
                 data = res.json()
@@ -101,19 +97,62 @@ def get_hobart_real_fuel_price():
                             "address": st_info.get("address", f"Postcode {pc}"),
                         }
                     )
+                print(f"ℹ️ Postcode {pc} 成功取得 {len(prices)} 筆 U91 油價")
+            else:
+                print(f"⚠️ Postcode {pc} HTTP {res.status_code}: {res.text}")
+        except Exception as e:
+            print(f"⚠️ Postcode {pc} 連線異常: {str(e)}")
+
+    # 策略 2（備援）：若策略 1 未取得資料，改呼叫全量 v2 GET /FuelPriceCheck/v2/fuel/prices?states=TAS
+    if not combined_results:
+        print(
+            "🔄 切換至策略 2: 請求全量 TAS 數據"
+            " (/FuelPriceCheck/v2/fuel/prices?states=TAS)..."
+        )
+        url_all = "https://api.onegov.nsw.gov.au/FuelPriceCheck/v2/fuel/prices?states=TAS"
+        try:
+            res_all = requests.get(url_all, headers=headers_api, timeout=15)
+            print(f"🔍 Prices All Status: {res_all.status_code}")
+
+            if res_all.status_code == 200:
+                data = res_all.json()
+                stations = {
+                    str(s.get("code")): s for s in data.get("stations", [])
+                }
+                prices = data.get("prices", [])
+
+                for p in prices:
+                    fueltype = str(p.get("fueltype", ""))
+                    st_code = str(p.get("stationcode"))
+                    st_info = stations.get(st_code, {})
+                    st_postcode = str(st_info.get("postcode", ""))
+
+                    if fueltype == "U91" and (
+                        st_postcode in postcodes
+                        or "TAS" in st_info.get("state", "")
+                    ):
+                        combined_results.append(
+                            {
+                                "price": p.get("price"),
+                                "stationname": st_info.get(
+                                    "name", "Hobart 加油站"
+                                ),
+                                "address": st_info.get(
+                                    "address", "Hobart / Lutana"
+                                ),
+                            }
+                        )
                 print(
-                    f"ℹ️ Postcode {pc} (v2) 成功取得 {len(prices)} 筆 U91 油價"
+                    f"ℹ️ 備援策略成功篩選出 {len(combined_results)} 筆 TAS U91"
+                    " 油價"
                 )
             else:
-                print(
-                    f"⚠️ [API Warning] Postcode {pc} HTTP {res.status_code}:"
-                    f" {res.text}"
-                )
+                print(f"⚠️ 備援策略 HTTP {res_all.status_code}: {res_all.text}")
         except Exception as e:
-            print(f"⚠️ [API Exception] Postcode {pc} 連線異常: {str(e)}")
+            print(f"⚠️ 備援策略連線異常: {str(e)}")
 
     if not combined_results:
-        print("❌ [Data Error] v2 API 未回傳 7009/7000 地區的有效數據！")
+        print("❌ [Data Error] 未能取得 7009/7000 地區的有效數據！")
         return (
             None,
             "⚠️ 無油價資料",
@@ -143,6 +182,7 @@ def get_hobart_real_fuel_price():
         f" {price} c/L"
     )
     return price, station_name, address
+
 
 
 # 2. Email 預警發送
