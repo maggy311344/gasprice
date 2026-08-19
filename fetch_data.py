@@ -1,35 +1,39 @@
+from datetime import datetime
 import json
-import numpy as np
 import yfinance as yf
 
 
-def get_market_data():
-    # 1. 抓取原油與匯率 (以 AUD/USD 為例)
-    oil = yf.Ticker("CL=F").history(period="10d")["Close"]
+def analyze_and_generate():
+    # 1. 抓取近 10 天布蘭特原油 (BZ=F) 與 匯率 (AUD/USD 或 TWD/USD)
+    oil = yf.Ticker("BZ=F").history(period="10d")["Close"]
     fx = yf.Ticker("AUDUSD=X").history(period="10d")["Close"]
 
-    oil_change = (oil.iloc[-1] - oil.iloc[-7]) / oil.iloc[-7] * 100
-    fx_change = (fx.iloc[-1] - fx.iloc[-7]) / fx.iloc[-7] * 100
+    # 2. 自動計算原油 7 天變動率 %
+    oil_now = oil.iloc[-1]
+    oil_7d_ago = oil.iloc[-7] if len(oil) >= 7 else oil.iloc[0]
+    oil_change = ((oil_now - oil_7d_ago) / oil_7d_ago) * 100
 
-    # 2. 自動評價邏輯
-    if oil_change > 3:
-        oil_eval = "UP_LARGE"
-        oil_desc = f"國際原油近 7 天大漲 {oil_change:.1f}%"
-    elif oil_change < -3:
-        oil_eval = "DOWN_LARGE"
-        oil_desc = f"國際原油近 7 天大跌 {abs(oil_change):.1f}%"
+    # 3. 系統自動邏輯評價
+    if oil_change > 3.0:
+        status_text = f"🚨 國際原油大漲 (+{oil_change:.1f}%)，零售端即將面臨大幅漲價壓力！"
+        score = 95
+        recommend = "🟢 強烈建議今天加滿！(暴漲預警)"
+    elif oil_change < -3.0:
+        status_text = f"📉 國際原油大幅下跌 (-{abs(oil_change):.1f}%)，市場批發成本下降。"
+        score = 50
+        recommend = "🔵 觀望按需加油 (油價有下跌空間)"
     else:
-        oil_eval = "FLAT"
-        oil_desc = "國際原油處於持平震盪階段"
+        status_text = f"⚖️ 國際原油呈持平震盪走勢 (變動 {oil_change:+.1f}%)，走勢平穩。"
+        score = 85
+        recommend = "🟢 最佳加油窗口期：原油走勢平穩，可安心加油。"
 
-    # 3. 模擬本地週期判斷與 14 天預測數據 (實際可介接當地油價 API)
-    # 這裡會依據演算結果自動產出數據，供前端直接繪製圖表
-    output_data = {
-        "last_updated": "今天",
+    # 4. 打包數據輸出給網頁
+    data = {
+        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"),
         "evaluation": {
-            "oil_status": oil_desc,
-            "score": 88 if oil_eval == "FLAT" else 95,
-            "recommendation": "🟢 最佳加油窗口期：原油走勢平穩，本地價位處於低點！",
+            "oil_status": status_text,
+            "score": score,
+            "recommendation": recommend,
         },
         "chart_data": {
             "labels": [
@@ -42,20 +46,25 @@ def get_market_data():
                 "Day 12",
                 "Day 14",
             ],
-            "retail_prices": [168, 168, 168, 205, 202, 198, 195, 192],
-            "oil_costs": [
-                round(oil.iloc[-1], 1),
-                round(oil.iloc[-1] * 1.01, 1),
-                round(oil.iloc[-1] * 1.02, 1),
-            ]
-            * 3,
-            "scores": [90, 85, 80, 20, 30, 40, 50, 60],
+            "retail_prices": [168, 168, 167, 205, 202, 198, 195, 192],
+            "oil_costs": [round(oil_now, 1)] * 8,
+            "scores": [
+                score,
+                score - 5,
+                score - 10,
+                20,
+                30,
+                40,
+                50,
+                60,
+            ],
         },
     }
 
+    # 寫入成 data.json 供前端網頁讀取
     with open("data.json", "w", encoding="utf-8") as f:
-        json.dump(output_data, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
-    get_market_data()
+    analyze_and_generate()
