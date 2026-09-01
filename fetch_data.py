@@ -267,8 +267,7 @@ def analyze_and_generate():
             if fx_change < -1.0
             else ""
         )
-
-        # 💡 判斷邏輯改以「澳幣計價原油成本 (oil_aud_change)」為主力依據
+# 以「澳幣計價原油成本 (oil_aud_change)」為判斷依據
         if oil_aud_change > 2.5 or fx_change < -1.8:
             banner_color = "var(--accent-red)"
             status_text = (
@@ -277,12 +276,10 @@ def analyze_and_generate():
             )
             desc = (
                 f"**{station_name}**（{station_address}）目前 U91 現價為"
-                f" **{base_price} c/L**。"
-                f"因國際原油與匯率綜合成本上漲 {oil_aud_change}%"
-                f" {fx_warning_str}，預計 3-5 天內將有顯著漲幅，建議盡快加滿。"
+                f" **{base_price} c/L**。因國際原油與匯率綜合成本上漲"
+                f" {oil_aud_change}% {fx_warning_str}，預計 3-5"
+                " 天內將有顯著漲幅，建議盡快加滿。"
             )
-            score = 98
-# 油價越漲，未來的推薦指數越低
             retail_curve = [
                 base_price,
                 base_price,
@@ -293,7 +290,6 @@ def analyze_and_generate():
                 base_price + 18,
                 base_price + 15,
             ]
-            scores_curve = [98, 95, 75, 20, 25, 30, 40, 50]  # 今天 98 分最高
         elif oil_aud_change < -2.5:
             banner_color = "var(--accent-blue)"
             status_text = (
@@ -302,12 +298,9 @@ def analyze_and_generate():
             )
             desc = (
                 f"**{station_name}**（{station_address}）目前 U91 現價為"
-                f" **{base_price} c/L**。"
-                f"以澳幣計價之原油進口成本回落"
+                f" **{base_price} c/L**。以澳幣計價之原油進口成本回落"
                 f" {abs(oil_aud_change)}%，短期內暴漲風險低。"
             )
-# 油價下跌，未來的推薦指數隨之上升
-            score = 55  # 今天價格較高，今天的分數給低一些
             retail_curve = [
                 base_price,
                 base_price - 1,
@@ -318,26 +311,15 @@ def analyze_and_generate():
                 base_price - 4,
                 base_price - 5,
             ]
-            scores_curve = [
-                55,
-                60,
-                70,
-                80,
-                85,
-                90,
-                92,
-                95,
-            ]  # 未來越跌越划算，指數往上升
         else:
             banner_color = "var(--accent-green)"
             status_text = f"🟢 走勢平穩 ({station_name} 現價 {base_price} c/L)"
             desc = (
                 f"**{station_name}**（{station_address}）目前 U91 現價為"
-                f" **{base_price} c/L**。"
-                f"澳幣計價原油走勢溫和 ({oil_aud_change:+.1f}%)"
+                f" **{base_price} c/L**。澳幣計價原油走勢溫和"
+                f" ({oil_aud_change:+.1f}%)"
                 f" {fx_warning_str}，零售價格波動預計保持平穩。"
             )
-            score = 88
             retail_curve = [
                 base_price,
                 base_price,
@@ -348,30 +330,28 @@ def analyze_and_generate():
                 base_price + 3,
                 base_price + 3,
             ]
-            scores_curve = [88, 88, 85, 85, 82, 82, 80, 80]  # 波動不大，分數平穩
 
+    # 💡 動態算分邏輯（已修正縮排）：根據預測油價計算推薦指數 (範圍 40 ~ 95 分)
+    min_p = min(retail_curve)
+    max_p = max(retail_curve)
 
+    if max_p == min_p:
+        scores_curve = [85] * len(retail_curve)
+    else:
+        scores_curve = [
+            round(95 - ((p - min_p) / (max_p - min_p)) * 55)
+            for p in retail_curve
+        ]
 
-    # 💡 根據預測油價動態計算推薦指數：油價越低，分數越高 (範圍 30 ~ 98 分)
-        min_p = min(retail_curve)
-        max_p = max(retail_curve)
-        
-        if max_p == min_p:
-            scores_curve = [85] * len(retail_curve)
-        else:
-            # 價格最低得 95 分，最高得 40 分
-            scores_curve = [
-                round(95 - ((p - min_p) / (max_p - min_p)) * 55) for p in retail_curve
-            ]
-
-# 今日推薦分數以第一天為準
+    # 今日推薦分數以第一天為準
     score = scores_curve[0]
 
-    # 💡 成本曲線連帶改為「澳幣計價原油成本趨勢」
+    # 成本曲線連帶改為「澳幣計價原油成本趨勢」
     oil_cost_curve = [
         round(oil_aud_now + (i * (oil_aud_change / 7.0)), 1) for i in range(8)
     ]
 
+    
     # C. 打包寫入 data.json
     data = {
         "last_updated": time_str,
