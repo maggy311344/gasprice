@@ -282,6 +282,7 @@ def analyze_and_generate():
                 f" {fx_warning_str}，預計 3-5 天內將有顯著漲幅，建議盡快加滿。"
             )
             score = 98
+# 油價越漲，未來的推薦指數越低
             retail_curve = [
                 base_price,
                 base_price,
@@ -292,7 +293,7 @@ def analyze_and_generate():
                 base_price + 18,
                 base_price + 15,
             ]
-            scores_curve = [98, 90, 80, 20, 25, 30, 40, 50]
+            scores_curve = [98, 95, 75, 20, 25, 30, 40, 50]  # 今天 98 分最高
         elif oil_aud_change < -2.5:
             banner_color = "var(--accent-blue)"
             status_text = (
@@ -305,7 +306,8 @@ def analyze_and_generate():
                 f"以澳幣計價之原油進口成本回落"
                 f" {abs(oil_aud_change)}%，短期內暴漲風險低。"
             )
-            score = 75
+# 油價下跌，未來的推薦指數隨之上升
+            score = 55  # 今天價格較高，今天的分數給低一些
             retail_curve = [
                 base_price,
                 base_price - 1,
@@ -316,7 +318,16 @@ def analyze_and_generate():
                 base_price - 4,
                 base_price - 5,
             ]
-            scores_curve = [75, 75, 70, 70, 65, 60, 55, 50]
+            scores_curve = [
+                55,
+                60,
+                70,
+                80,
+                85,
+                90,
+                92,
+                95,
+            ]  # 未來越跌越划算，指數往上升
         else:
             banner_color = "var(--accent-green)"
             status_text = f"🟢 走勢平穩 ({station_name} 現價 {base_price} c/L)"
@@ -337,7 +348,24 @@ def analyze_and_generate():
                 base_price + 3,
                 base_price + 3,
             ]
-            scores_curve = [88, 85, 80, 75, 70, 65, 60, 55]
+            scores_curve = [88, 88, 85, 85, 82, 82, 80, 80]  # 波動不大，分數平穩
+
+
+
+    # 💡 根據預測油價動態計算推薦指數：油價越低，分數越高 (範圍 30 ~ 98 分)
+        min_p = min(retail_curve)
+        max_p = max(retail_curve)
+        
+        if max_p == min_p:
+            scores_curve = [85] * len(retail_curve)
+        else:
+            # 價格最低得 95 分，最高得 40 分
+            scores_curve = [
+                round(95 - ((p - min_p) / (max_p - min_p)) * 55) for p in retail_curve
+            ]
+
+# 今日推薦分數以第一天為準
+    score = scores_curve[0]
 
     # 💡 成本曲線連帶改為「澳幣計價原油成本趨勢」
     oil_cost_curve = [
