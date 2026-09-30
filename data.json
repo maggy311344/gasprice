@@ -1,15 +1,15 @@
 {
-  "last_updated": "2026-09-29 10:52:13 (Hobart Time)",
+  "last_updated": "2026-09-30 10:08:21 (Hobart Time)",
   "evaluation": {
-    "oil_status": "**United Lutana**（Postcode 7009）目前 U91 現價為 **242.9 c/L**。以澳幣計價之原油進口成本回落 3.69%，短期內暴漲風險低。",
-    "score": 20,
-    "recommendation": "📉 成本回落 (United Lutana 242.9c / 澳幣原油成本跌 3.69%)",
-    "banner_color": "var(--accent-blue)"
+    "oil_status": "**United Lutana**（Postcode 7009）目前 U91 現價為 **242.9 c/L**。因國際原油與匯率綜合成本上漲 -2.65% （澳幣貶值 1.88% 加劇進口成本），預計 3-5 天內將有顯著漲幅，建議盡快加滿。",
+    "score": 51,
+    "recommendation": "🚨 暴漲預警！(United Lutana 242.9c / 澳幣原油成本漲 -2.65%)",
+    "banner_color": "var(--accent-red)"
   },
   "metrics": {
-    "oil_price": 98.51,
-    "oil_change": -5.16,
-    "fx_change": -1.52,
+    "oil_price": 95.84,
+    "oil_change": -4.48,
+    "fx_change": -1.88,
     "cycle_text": "📍 United Lutana (242.9c)"
   },
   "chart_data": {
@@ -25,28 +25,28 @@
     ],
     "retail_prices": [
       242.9,
-      241.9,
-      240.9,
-      239.9,
-      239.9,
-      238.9,
-      238.9,
-      237.9
+      242.9,
+      244.9,
+      267.9,
+      265.9,
+      262.9,
+      260.9,
+      257.9
     ],
     "oil_costs": [
-      140.5,
-      139.9,
-      139.4,
-      138.9,
-      138.4,
-      137.8,
-      137.3,
-      136.8
+      137.2,
+      136.8,
+      136.5,
+      136.1,
+      135.7,
+      135.3,
+      134.9,
+      134.6
     ],
     "scores": [
-      20,
-      20,
-      20,
+      51,
+      51,
+      42,
       20,
       20,
       20,
